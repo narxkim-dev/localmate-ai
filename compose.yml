@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: localmate-postgres
+    environment:
+      POSTGRES_DB: localmate
+      POSTGRES_USER: localmate
+      POSTGRES_PASSWORD: localmate
+    ports:
+      - "5432:5432"
+    volumes:
+      - localmate-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U localmate -d localmate"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  localmate-pgdata:
