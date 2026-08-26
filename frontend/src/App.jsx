@@ -32,7 +32,10 @@ function getOrCreateConversationId() {
 function renderMarkdown(markdown) {
   const normalizedMarkdown = markdown
     .replace(/\\([#*_])/g, '$1')
-    .replace(/^[ \t]*(#{1,6})[ \t]*/gm, (_, hashes) => `${hashes} `)
+    .replace(
+      /^[ \t]*(#{1,6})[ \t]*/gm,
+      (_, hashes) => `${hashes} `,
+    )
 
   const renderedHtml = marked.parse(normalizedMarkdown, {
     breaks: true,
@@ -40,6 +43,15 @@ function renderMarkdown(markdown) {
   })
 
   return DOMPurify.sanitize(renderedHtml)
+}
+
+function extractCourseMarkdown(markdown) {
+  const coursePattern =
+    /<!--\s*COURSE_START\s*-->([\s\S]*?)<!--\s*COURSE_END\s*-->/i
+
+  const match = markdown.match(coursePattern)
+
+  return match?.[1]?.trim() ?? ''
 }
 
 function App() {
@@ -76,6 +88,7 @@ function App() {
     const newConversationId = crypto.randomUUID()
 
     localStorage.setItem(STORAGE_KEY, newConversationId)
+
     setConversationId(newConversationId)
     setIsStreaming(false)
     setMessage('')
@@ -100,7 +113,10 @@ function App() {
     setMessages((currentMessages) =>
       currentMessages.map((currentMessage) =>
         currentMessage.id === messageId
-          ? { ...currentMessage, ...updates }
+          ? {
+              ...currentMessage,
+              ...updates,
+            }
           : currentMessage,
       ),
     )
@@ -112,7 +128,8 @@ function App() {
         currentMessage.id === messageId
           ? {
               ...currentMessage,
-              markdown: currentMessage.markdown + markdownChunk,
+              markdown:
+                currentMessage.markdown + markdownChunk,
             }
           : currentMessage,
       ),
@@ -152,7 +169,9 @@ function App() {
         break
       }
 
-      buffer += decoder.decode(value, { stream: true })
+      buffer += decoder.decode(value, {
+        stream: true,
+      })
 
       const blocks = buffer.split(/\r?\n\r?\n/)
       buffer = blocks.pop() ?? ''
@@ -200,6 +219,7 @@ function App() {
       userMessage,
       aiMessage,
     ])
+
     setMessage('')
     setIsStreaming(true)
 
@@ -207,22 +227,27 @@ function App() {
     abortControllerRef.current = abortController
 
     try {
-      const response = await fetch('/api/chats/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'text/event-stream',
+      const response = await fetch(
+        '/api/chats/stream',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'text/event-stream',
+          },
+          body: JSON.stringify(requestBody),
+          signal: abortController.signal,
         },
-        body: JSON.stringify(requestBody),
-        signal: abortController.signal,
-      })
+      )
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
 
       if (!response.body) {
-        throw new Error('스트리밍 응답을 읽을 수 없습니다.')
+        throw new Error(
+          '스트리밍 응답을 읽을 수 없습니다.',
+        )
       }
 
       await readEventStream(response, aiMessageId)
@@ -233,22 +258,29 @@ function App() {
             return currentMessage
           }
 
+          const hasAnswer =
+            Boolean(currentMessage.markdown.trim())
+
           return {
             ...currentMessage,
             markdown:
               currentMessage.markdown.trim() ||
               '응답 내용이 없습니다.',
-            isComplete: Boolean(currentMessage.markdown.trim()),
+            isComplete: hasAnswer,
           }
         }),
       )
     } catch (error) {
       if (error.name !== 'AbortError') {
-        console.error('채팅 요청 실패:', error)
+        console.error(
+          '채팅 요청 실패:',
+          error,
+        )
 
         updateAiMessage(aiMessageId, {
           markdown:
-            '답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+            '답변을 불러오지 못했습니다. ' +
+            '잠시 후 다시 시도해 주세요.',
           isComplete: false,
           isError: true,
         })
@@ -264,7 +296,10 @@ function App() {
   }
 
   function handleKeyDown(event) {
-    if (event.ctrlKey && event.key === 'Enter') {
+    if (
+      event.ctrlKey &&
+      event.key === 'Enter'
+    ) {
       event.preventDefault()
       sendMessage()
     }
@@ -275,10 +310,23 @@ function App() {
 
     event.target.style.height = 'auto'
     event.target.style.height =
-      `${Math.min(event.target.scrollHeight, 150)}px`
+      `${Math.min(
+        event.target.scrollHeight,
+        150,
+      )}px`
   }
 
   async function downloadAnswerAsPdf(aiMessage) {
+    const courseMarkdown =
+      extractCourseMarkdown(aiMessage.markdown)
+
+    if (!courseMarkdown) {
+      alert(
+        '저장할 여행 코스를 찾을 수 없습니다.',
+      )
+      return
+    }
+
     const regionNames = {
       BUSAN: '부산',
       GYEONGJU: '경주',
@@ -291,67 +339,108 @@ function App() {
       CHINESE: '中文',
     }
 
-    const pdfDocument = document.createElement('div')
+    const createdAt =
+      new Intl.DateTimeFormat('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date())
+
+    const regionName =
+      regionNames[aiMessage.region] ??
+      aiMessage.region
+
+    const languageName =
+      languageNames[aiMessage.language] ??
+      aiMessage.language
+
+    const pdfDocument =
+      document.createElement('div')
+
     pdfDocument.className = 'pdf-document'
 
     pdfDocument.innerHTML = `
-      <h1 class="pdf-title">LocalMate AI 여행 추천</h1>
+      <h1 class="pdf-title">
+        LocalMate AI 여행 코스
+      </h1>
 
       <div class="pdf-meta">
-        <p>지역: ${regionNames[aiMessage.region] ?? aiMessage.region}</p>
-        <p>답변 언어: ${
-          languageNames[aiMessage.language] ?? aiMessage.language
-        }</p>
-        <p>생성일: ${new Intl.DateTimeFormat('ko-KR', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-        }).format(new Date())}</p>
+        <p>지역: ${regionName}</p>
+        <p>답변 언어: ${languageName}</p>
+        <p>생성일: ${createdAt}</p>
       </div>
 
       <hr>
 
       <div class="pdf-content">
-        ${renderMarkdown(aiMessage.markdown)}
+        ${renderMarkdown(courseMarkdown)}
       </div>
     `
 
-    const pdfContainer = document.createElement('div')
-    pdfContainer.className = 'pdf-render-container'
-    pdfContainer.appendChild(pdfDocument)
+    const pdfContainer =
+      document.createElement('div')
 
+    pdfContainer.className =
+      'pdf-render-container'
+
+    pdfContainer.appendChild(pdfDocument)
     document.body.appendChild(pdfContainer)
 
-    const date = new Date().toISOString().slice(0, 10)
+    const date = new Date()
+      .toISOString()
+      .slice(0, 10)
+
     const fileName =
-      `localmate-${aiMessage.region.toLowerCase()}-${date}.pdf`
+      `localmate-course-` +
+      `${aiMessage.region.toLowerCase()}-` +
+      `${date}.pdf`
+
+    const options = {
+      margin: [12, 12, 12, 12],
+      filename: fileName,
+
+      image: {
+        type: 'jpeg',
+        quality: 0.98,
+      },
+
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+      },
+
+      jsPDF: {
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait',
+      },
+
+      pagebreak: {
+        mode: ['css', 'legacy'],
+        avoid: [
+          '.pdf-content p',
+          '.pdf-content li',
+          '.pdf-content h1',
+          '.pdf-content h2',
+          '.pdf-content h3',
+          '.pdf-content h4',
+          'table',
+          'thead',
+          'tr',
+          'blockquote',
+          'pre',
+        ],
+      },
+    }
 
     try {
+      await document.fonts?.ready
+
       await html2pdf()
-        .set({
-          margin: [12, 12, 12, 12],
-          filename: fileName,
-          image: {
-            type: 'jpeg',
-            quality: 0.98,
-          },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-          },
-          jsPDF: {
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'portrait',
-          },
-          pagebreak: {
-            mode: ['css', 'legacy'],
-            avoid: ['table', 'tr', 'blockquote', 'pre'],
-          },
-        })
+        .set(options)
         .from(pdfDocument)
         .save()
     } finally {
@@ -364,11 +453,17 @@ function App() {
       <main className="chat-app">
         <header className="chat-header">
           <div className="brand">
-            <div className="brand-icon">LM</div>
+            <div className="brand-icon">
+              LM
+            </div>
 
             <div>
               <h1>LocalMate AI</h1>
-              <p>Busan &amp; Gyeongju Travel Concierge</p>
+
+              <p>
+                Busan &amp; Gyeongju
+                Travel Concierge
+              </p>
             </div>
           </div>
 
@@ -388,10 +483,17 @@ function App() {
             <select
               value={region}
               disabled={isStreaming}
-              onChange={(event) => setRegion(event.target.value)}
+              onChange={(event) =>
+                setRegion(event.target.value)
+              }
             >
-              <option value="BUSAN">부산</option>
-              <option value="GYEONGJU">경주</option>
+              <option value="BUSAN">
+                부산
+              </option>
+
+              <option value="GYEONGJU">
+                경주
+              </option>
             </select>
           </label>
 
@@ -401,12 +503,25 @@ function App() {
             <select
               value={language}
               disabled={isStreaming}
-              onChange={(event) => setLanguage(event.target.value)}
+              onChange={(event) =>
+                setLanguage(event.target.value)
+              }
             >
-              <option value="KOREAN">한국어</option>
-              <option value="ENGLISH">English</option>
-              <option value="JAPANESE">日本語</option>
-              <option value="CHINESE">中文</option>
+              <option value="KOREAN">
+                한국어
+              </option>
+
+              <option value="ENGLISH">
+                English
+              </option>
+
+              <option value="JAPANESE">
+                日本語
+              </option>
+
+              <option value="CHINESE">
+                中文
+              </option>
             </select>
           </label>
         </section>
@@ -416,74 +531,123 @@ function App() {
           className="chat-history"
           aria-live="polite"
         >
-          {messages.map((chatMessage) => (
-            <article
-              key={chatMessage.id}
-              className={
-                chatMessage.role === 'user'
-                  ? 'message user-message'
-                  : 'message ai-message'
-              }
-            >
-              <div className="message-profile">
-                {chatMessage.role === 'user' ? 'ME' : 'AI'}
-              </div>
+          {messages.map((chatMessage) => {
+            const isUser =
+              chatMessage.role === 'user'
 
-              <div className="message-content">
-                <div className="message-name">
-                  {chatMessage.role === 'user'
-                    ? 'You'
-                    : 'LocalMate AI'}
+            const courseMarkdown =
+              isUser
+                ? ''
+                : extractCourseMarkdown(
+                    chatMessage.markdown,
+                  )
+
+            const messageClassName =
+              isUser
+                ? 'message user-message'
+                : 'message ai-message'
+
+            const bubbleClassName = [
+              'message-bubble',
+
+              isStreaming &&
+              chatMessage.id ===
+                messages.at(-1)?.id
+                ? 'streaming'
+                : '',
+
+              chatMessage.isError
+                ? 'error-message'
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
+
+            return (
+              <article
+                key={chatMessage.id}
+                className={messageClassName}
+              >
+                <div className="message-profile">
+                  {isUser ? 'ME' : 'AI'}
                 </div>
 
-                {chatMessage.role === 'user' ? (
-                  <div className="message-bubble">
-                    {chatMessage.text}
+                <div className="message-content">
+                  <div className="message-name">
+                    {isUser
+                      ? 'You'
+                      : 'LocalMate AI'}
                   </div>
-                ) : (
-                  <>
-                    <div
-                      className={[
-                        'message-bubble',
-                        isStreaming &&
-                        chatMessage.id === messages.at(-1)?.id
-                          ? 'streaming'
-                          : '',
-                        chatMessage.isError
-                          ? 'error-message'
-                          : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                      dangerouslySetInnerHTML={{
-                        __html: renderMarkdown(
-                          chatMessage.markdown,
-                        ),
-                      }}
-                    />
 
-                    {chatMessage.isComplete && (
-                      <div className="message-actions">
-                        <button
-                          type="button"
-                          className="pdf-download-button"
-                          onClick={() =>
-                            downloadAnswerAsPdf(chatMessage)
-                          }
-                        >
-                          PDF 저장
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </article>
-          ))}
+                  {isUser ? (
+                    <div className="message-bubble">
+                      {chatMessage.text}
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        className={bubbleClassName}
+                        dangerouslySetInnerHTML={{
+                          __html: renderMarkdown(
+                            chatMessage.markdown,
+                          ),
+                        }}
+                      />
+
+                      {chatMessage.isComplete &&
+                        courseMarkdown && (
+                          <div className="message-actions">
+                            <button
+                              type="button"
+                              className="pdf-download-button"
+                              onClick={() =>
+                                downloadAnswerAsPdf(
+                                  chatMessage,
+                                )
+                              }
+                            >
+                              <span
+                                className="pdf-button-icon"
+                                aria-hidden="true"
+                              >
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M7 3.75h7.25L18.5 8v12.25H7V3.75Z"
+                                    stroke="currentColor"
+                                    strokeWidth="1.7"
+                                    strokeLinejoin="round"
+                                  />
+
+                                  <path
+                                    d="M14 3.75V8.5h4.5M12.75 11.25v5m0 0-2.25-2.25m2.25 2.25L15 14"
+                                    stroke="currentColor"
+                                    strokeWidth="1.7"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </span>
+
+                              <span>여행 코스 PDF</span>
+                            </button>
+                          </div>
+                        )}
+                    </>
+                  )}
+                </div>
+              </article>
+            )
+          })}
         </section>
 
         <section className="chat-input-area">
-          <label htmlFor="message" className="sr-only">
+          <label
+            htmlFor="message"
+            className="sr-only"
+          >
             여행 질문
           </label>
 
@@ -502,16 +666,25 @@ function App() {
           <button
             type="button"
             className="send-button"
-            disabled={isStreaming || !message.trim()}
+            disabled={
+              isStreaming ||
+              !message.trim()
+            }
             onClick={sendMessage}
           >
-            {isStreaming ? '응답 중' : '전송'}
+            {isStreaming
+              ? '응답 중'
+              : '전송'}
           </button>
         </section>
 
         <div className="input-guide">
           <span>Ctrl + Enter로 전송</span>
-          <span>대화 ID: {conversationId.substring(0, 8)}</span>
+
+          <span>
+            대화 ID:{' '}
+            {conversationId.substring(0, 8)}
+          </span>
         </div>
       </main>
     </div>

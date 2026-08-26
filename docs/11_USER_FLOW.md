@@ -29,15 +29,7 @@
 
 ↓
 
-AI 질문 분석
-
-↓
-
-Tool Calling 여부 판단
-
-↓
-
-관광 데이터 조회
+선택 지역·언어를 포함한 Prompt 생성
 
 ↓
 
@@ -50,6 +42,14 @@ Streaming 출력
 ↓
 
 Chat Memory 저장
+
+↓
+
+여행 코스 마커 감지
+
+↓
+
+코스 PDF 다운로드 제공
 
 ↓
 
@@ -95,55 +95,37 @@ Prompt 생성
 
 ---
 
-## 3. Tool Calling
+## 3. Streaming
 
-질문이
+백엔드는 Gemini 응답을 SSE로 전송한다.
 
-- 관광지
-- 음식
-- 교통
-
-관련이면
-
-Tool을 호출한다.
-
-예)
-
-```text
-Question
-
-↓
-
-Tool
-
-↓
-
-TourSpot
-
-↓
-
-Response
-```
+프런트엔드는 ReadableStream을 읽어 AI 메시지에 순차적으로 추가한다.
 
 ---
 
-## 4. Streaming
-
-AI 응답은
-
-토큰 단위로 출력된다.
-
----
-
-## 5. Chat Memory
+## 4. Chat Memory
 
 사용자가
 
 > Which one is closest?
 
-라고 질문하면
+라고 질문하면 이전 추천 내용을 conversationId 기반으로 기억한다.
 
-이전 추천 관광지를 기억한다.
+---
+
+## 5. 여행 코스 PDF
+
+AI 응답에 `COURSE_START`와 `COURSE_END` 마커가 모두 존재하면
+`여행 코스 PDF` 버튼을 표시한다.
+
+PDF에는 일반 대화가 아니라 마커 내부의 코스 내용만 포함한다.
+
+---
+
+## 6. Tool Calling (예정)
+
+관광지, 음식, 교통 관련 질문에 데이터베이스 조회 Tool을 호출하는 흐름은
+다음 구현 단계에 추가한다.
 
 ---
 
@@ -152,3 +134,5 @@ AI 응답은
 새 대화를 누르면
 
 conversationId를 새로 생성한다.
+
+진행 중인 스트림을 취소하고 메시지 화면을 초기화한다.

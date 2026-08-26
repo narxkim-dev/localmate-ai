@@ -46,6 +46,12 @@
 
 ✅ 문화 차이 안내
 
+✅ Markdown 제목, 목록, 표 문법 준수
+
+✅ 일정·경로 답변에 PDF 추출용 코스 마커 포함
+
+✅ 코스 안에 일정표, 장소별 설명, 이동, 실용 정보를 충분히 포함
+
 ---
 
 # 하지 말아야 하는 것
@@ -60,25 +66,25 @@
 
 ---
 
-# Tool Calling 조건
+# 여행 코스 출력 조건
 
-관광지 질문
+일정, 여행 경로, 추천 코스가 포함된 답변은 다음 형식으로 출력한다.
 
-↓
+```text
+<!-- COURSE_START -->
+독립적으로 읽을 수 있는 상세 여행 코스
+<!-- COURSE_END -->
+```
 
-Tour Tool
+코스에는 다음 정보를 포함한다.
 
-음식 질문
+- 코스 제목, 대상 여행자, 속도, 총 소요 시간
+- 시간순 일정표
+- 장소별 설명과 실용 팁
+- 장소 간 이동 방법과 예상 시간
+- 식사, 교통, 예약, 날씨 및 대안
 
-↓
-
-Food Tool
-
-교통 질문
-
-↓
-
-Transport Tool
+일반 설명이나 코스와 무관한 경고는 마커 밖에 둔다.
 
 ---
 
@@ -98,27 +104,15 @@ Transport Tool
 
 # System Prompt
 
-```text
-You are LocalMate AI.
-
-You are a tourism concierge specialized in Busan and Gyeongju.
-
-Always answer based on the selected city.
-
-Use the user's language.
-
-Never make up tourist information.
-
-Recommend transportation, food, culture and attractions.
-
-If information is uncertain, clearly tell the user that it should be verified.
-```
+현재 적용 규칙과 여행 코스 PDF 출력 계약은 `16_SYSTEM_PROMPT.md`에 정리한다.
+실제 프롬프트의 단일 기준은 `ChatConfig.java`이다.
 
 ---
 
 # Future Prompt
 
-향후
+향후 Tool Calling을 구현하면 관광지, 음식, 교통 관련 질문에 각각
+TourSpotTool, FoodTool, TransportTool 결과를 근거로 답변하도록 확장한다.
 
 도시만 변경하면
 

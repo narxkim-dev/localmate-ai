@@ -2,6 +2,9 @@
 
 # Overview
 
+> 구현 상태: 이 문서는 향후 Tool Calling 설계안이다. 현재 코드에는 아래
+> Tool이 등록되어 있지 않으며 TourSpotTool부터 순차적으로 구현할 예정이다.
+
 LocalMate AI는
 
 Spring AI Tool Calling을 활용하여

@@ -2,6 +2,10 @@
 
 # Database Overview
 
+> 구현 상태: 현재 PostgreSQL은 Spring AI JDBC ChatMemory 저장소에 사용한다.
+> 아래 CITY, TOUR_SPOT, FOOD, EMERGENCY 등 관광 도메인 테이블은 향후
+> Tool Calling 구현을 위한 설계이며 아직 애플리케이션 코드에 구현되지 않았다.
+
 LocalMate AI는
 
 도시별 관광 정보를 관리하고,

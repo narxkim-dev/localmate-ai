@@ -162,8 +162,11 @@ AI 기반 관광 컨시어지 서비스를 제공하여
 | AI 관광 상담 | 자연어 질의응답 |
 | Streaming | 실시간 답변 |
 | Chat Memory | 이전 대화 기억 |
-| Tool Calling | 관광 정보 조회 |
 | 관광 추천 | 관광지 / 음식 / 문화 추천 |
+| 일정 생성 | 상세 여행 코스와 시간순 일정표 생성 |
+| 코스 PDF | AI 답변에서 여행 코스만 추출하여 PDF 저장 |
+
+> Tool Calling 기반 관광 데이터 조회는 향후 구현 범위이다.
 
 ---
 
@@ -178,15 +181,7 @@ AI 기반 관광 컨시어지 서비스를 제공하여
 
 ↓
 
-Spring AI
-
-↓
-
-Tool Calling
-
-↓
-
-관광 데이터 조회
+Spring AI + Chat Memory
 
 ↓
 
@@ -218,19 +213,11 @@ Spring Boot
 
 ↓
 
-Spring AI
+Spring AI ── Gemini API
 
 ↓
 
-Tool Calling
-
-↓
-
-PostgreSQL
-
-↓
-
-Gemini API
+PostgreSQL Chat Memory
 ```
 
 ---
@@ -239,9 +226,11 @@ Gemini API
 
 ## Frontend
 
-- HTML
-- CSS
-- JavaScript
+- React
+- Vite
+- HTML / CSS / JavaScript
+- Marked / DOMPurify
+- html2pdf.js
 
 ## Backend
 
@@ -268,11 +257,13 @@ Gemini API
 
 ## 필수 기능
 
-- [ ] 지역 선택
-- [ ] AI 관광 상담
-- [ ] Streaming
-- [ ] Chat Memory
-- [ ] 다국어 지원
+- [x] 지역 선택
+- [x] AI 관광 상담
+- [x] Streaming
+- [x] Chat Memory
+- [x] 다국어 지원
+- [x] 새 대화
+- [x] Markdown 답변 렌더링
 
 ---
 
@@ -281,7 +272,9 @@ Gemini API
 - [ ] 관광지 카드
 - [ ] 음식 추천
 - [ ] Tool Calling
-- [ ] 여행 일정 생성
+- [x] 여행 일정 생성
+- [x] 여행 코스 PDF 저장
+- [ ] 일정 저장 및 불러오기
 
 ---
 
@@ -365,7 +358,8 @@ LocalMate AI는
 
 # 🔥 향후 발전 방향
 
-- 관광 일정 자동 생성
+- 여행 조건 입력형 일정 플래너
+- 일정 저장 및 불러오기
 - 관광지 즐겨찾기
 - 이미지 기반 관광지 분석
 - 음성 대화 지원
